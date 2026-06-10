@@ -80,7 +80,11 @@ def cmd_run(args: argparse.Namespace) -> int:
     log(f"cleaned_csv={cleaned_path.relative_to(ROOT)}")
     log(f"quarantine_csv={quar_path.relative_to(ROOT)}")
 
-    results, halt = run_expectations(cleaned)
+    results, halt = run_expectations(
+        cleaned,
+        raw_count=raw_count,
+        quarantine_count=len(quarantine),
+    )
     for r in results:
         sym = "OK" if r.passed else "FAIL"
         log(f"expectation[{r.name}] {sym} ({r.severity}) :: {r.detail}")

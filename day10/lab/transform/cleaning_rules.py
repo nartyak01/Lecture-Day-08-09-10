@@ -115,6 +115,21 @@ def clean_rows(
             quarantine.append({**raw, "reason": "missing_chunk_text"})
             continue
 
+        # Rule mới: chunk quá ngắn — tránh noise trong retrieval (kích hoạt khi inject dòng <20 ký tự).
+        if len(text.strip()) < 20:
+            quarantine.append({**raw, "reason": "chunk_too_short"})
+            continue
+
+        # Rule mới: exported_at bắt buộc — lineage/publish boundary (khớp expectation exported_at_not_empty).
+        if not exported_at.strip():
+            quarantine.append({**raw, "reason": "missing_exported_at"})
+            continue
+
+        # Rule mới: ngày hiệu lực tương lai bất thường — chặn typo hoặc export lỗi đồng hồ nguồn.
+        if eff_norm > "2026-12-31":
+            quarantine.append({**raw, "reason": "future_effective_date"})
+            continue
+
         key = _norm_text(text)
         if key in seen_text:
             quarantine.append({**raw, "reason": "duplicate_chunk_text"})

@@ -19,7 +19,12 @@ class ExpectationResult:
     detail: str
 
 
-def run_expectations(cleaned_rows: List[Dict[str, Any]]) -> Tuple[List[ExpectationResult], bool]:
+def run_expectations(
+    cleaned_rows: List[Dict[str, Any]],
+    *,
+    raw_count: int = 0,
+    quarantine_count: int = 0,
+) -> Tuple[List[ExpectationResult], bool]:
     """
     Trả về (results, should_halt).
 
@@ -109,6 +114,40 @@ def run_expectations(cleaned_rows: List[Dict[str, Any]]) -> Tuple[List[Expectati
             ok6,
             "halt",
             f"violations={len(bad_hr_annual)}",
+        )
+    )
+
+    bad_export = [r for r in cleaned_rows if not (r.get("exported_at") or "").strip()]
+    ok7 = len(bad_export) == 0
+    results.append(
+        ExpectationResult(
+            "exported_at_not_empty",
+            ok7,
+            "halt",
+            f"empty={len(bad_export)}",
+        )
+    )
+
+    ids = [r["chunk_id"] for r in cleaned_rows]
+    ok8 = len(ids) == len(set(ids))
+    results.append(
+        ExpectationResult(
+            "no_duplicate_chunk_id",
+            ok8,
+            "halt",
+            f"duplicates={len(ids) - len(set(ids))}",
+        )
+    )
+
+    total = raw_count if raw_count > 0 else len(cleaned_rows) + quarantine_count
+    ratio = quarantine_count / total if total else 0.0
+    ok9 = ratio <= 0.5
+    results.append(
+        ExpectationResult(
+            "quarantine_ratio_max_50pct",
+            ok9,
+            "warn",
+            f"quarantine={quarantine_count} raw={total} ratio={ratio:.2f}",
         )
     )
 
